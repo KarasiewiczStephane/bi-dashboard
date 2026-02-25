@@ -2,6 +2,7 @@
 
 All interactive behaviour is wired here — filter changes propagate
 to every chart and KPI card through shared ``dcc.Store`` state.
+Role-based access restricts visibility based on the selected role.
 """
 
 from datetime import date, datetime
@@ -10,6 +11,7 @@ from typing import Any, Optional
 from dash import Dash, Input, Output, State, no_update
 
 from src.dashboard.components.charts import (
+    _empty_figure,
     build_category_chart,
     build_cohort_heatmap,
     build_drilldown_chart,
@@ -18,6 +20,7 @@ from src.dashboard.components.charts import (
     build_timeseries_chart,
 )
 from src.dashboard.components.kpi_cards import create_kpi_section
+from src.dashboard.roles import filter_kpis, get_permissions
 from src.data.queries import QueryLayer
 from src.utils.logger import setup_logger
 
@@ -67,6 +70,7 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
             Input("date-range", "end_date"),
             Input("period-selector", "value"),
             Input("region-filter", "value"),
+            Input("role-selector", "value"),
         ],
     )
     def update_dashboard(
@@ -74,6 +78,7 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
         end: Any,
         period: str,
         region: Optional[str],
+        role: str,
     ) -> tuple:
         """Refresh every chart and KPI section when filters change."""
         try:
@@ -82,8 +87,15 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
         except (ValueError, TypeError):
             return (no_update,) * 6
 
+        perms = get_permissions(role)
+
+        # Manager sees only their assigned region
+        if not perms["view_all_regions"] and perms.get("assigned_region"):
+            region = perms["assigned_region"]
+
         kpis = ql.get_kpis(start_dt, end_dt, region=region)
-        kpi_section = create_kpi_section(kpis)
+        filtered_kpis = filter_kpis(kpis, role)
+        kpi_section = create_kpi_section(filtered_kpis)
 
         region_df = ql.get_revenue_by_region(start_dt, end_dt)
         region_fig = build_region_chart(region_df)
@@ -120,14 +132,20 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
             Input("category-chart", "clickData"),
             Input("date-range", "start_date"),
             Input("date-range", "end_date"),
+            Input("role-selector", "value"),
         ],
     )
     def update_drilldown(
         click_data: Any,
         start: Any,
         end: Any,
+        role: str,
     ) -> Any:
         """Show product-level detail when a category bar is clicked."""
+        perms = get_permissions(role)
+        if not perms["drilldown_enabled"]:
+            return _empty_figure("Drill-down disabled for your role")
+
         if click_data is None:
             return no_update
 
@@ -166,7 +184,23 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
         except (KeyError, IndexError):
             return no_update
 
-        # Toggle: clicking the same region clears the filter
         if clicked == current:
             return None
         return clicked
+
+    # ------------------------------------------------------------------
+    # Role change → update store and disable export buttons
+    # ------------------------------------------------------------------
+    @app.callback(
+        [
+            Output("current-role", "data"),
+            Output("export-pdf-btn", "disabled"),
+            Output("export-csv-btn", "disabled"),
+        ],
+        Input("role-selector", "value"),
+    )
+    def update_role(role: str) -> tuple:
+        """Store the selected role and toggle export button state."""
+        perms = get_permissions(role)
+        disabled = not perms["export_enabled"]
+        return role, disabled, disabled
