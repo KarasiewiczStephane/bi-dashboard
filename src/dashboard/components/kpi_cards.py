@@ -106,7 +106,7 @@ def create_kpi_section(
         dbc.Col(
             make_kpi_card(
                 "Total Revenue",
-                _format_number(kpis["total_revenue"], "$"),
+                _format_number(kpis.get("total_revenue", 0), "$"),
                 kpis.get("revenue_change_pct"),
             ),
             width=12,
@@ -117,8 +117,8 @@ def create_kpi_section(
         dbc.Col(
             make_kpi_card(
                 "Customers",
-                _format_number(kpis["customer_count"]),
-                subtitle=f"{kpis['new_customers']} new",
+                _format_number(kpis.get("customer_count", 0)),
+                subtitle=f"{kpis.get('new_customers', 0)} new",
             ),
             width=12,
             sm=6,
@@ -128,7 +128,7 @@ def create_kpi_section(
         dbc.Col(
             make_kpi_card(
                 "Avg Order Value",
-                _format_number(kpis["avg_order_value"], "$"),
+                _format_number(kpis.get("avg_order_value", 0), "$"),
             ),
             width=12,
             sm=6,
@@ -138,7 +138,7 @@ def create_kpi_section(
         dbc.Col(
             make_kpi_card(
                 "Transactions",
-                _format_number(kpis["transaction_count"]),
+                _format_number(kpis.get("transaction_count", 0)),
             ),
             width=12,
             sm=6,
