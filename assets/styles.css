@@ -1,0 +1,62 @@
+/* Mobile-responsive overrides for Dash Bootstrap Components */
+
+/* Collapsible sidebar on small screens */
+@media (max-width: 991.98px) {
+    #sidebar-col {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 85%;
+        max-width: 320px;
+        height: 100vh;
+        z-index: 1050;
+        transition: left 0.3s ease-in-out;
+        overflow-y: auto;
+        background: #f8f9fa;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    }
+
+    #sidebar-col.show {
+        left: 0;
+    }
+}
+
+/* Touch-friendly spacing */
+.dash-graph {
+    min-height: 280px;
+}
+
+@media (max-width: 575.98px) {
+    .dash-graph {
+        min-height: 220px;
+    }
+
+    .card-body h3 {
+        font-size: 1.2rem;
+    }
+
+    .card-body h6 {
+        font-size: 0.75rem;
+    }
+}
+
+/* Ensure charts resize on orientation change */
+.js-plotly-plot .plotly .main-svg {
+    width: 100% !important;
+}
+
+/* Stacked cards on mobile */
+@media (max-width: 767.98px) {
+    .row > .col-sm-6 {
+        margin-bottom: 0.75rem;
+    }
+}
+
+/* Date picker responsive width */
+.DateRangePickerInput {
+    width: 100%;
+}
+
+.DateRangePickerInput__withBorder {
+    border-radius: 4px;
+}
