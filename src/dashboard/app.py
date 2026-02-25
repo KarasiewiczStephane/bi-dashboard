@@ -29,9 +29,11 @@ def create_app() -> Dash:
         title=config.get("app.title", "BI Dashboard"),
     )
 
+    from src.dashboard.callbacks import register_callbacks
     from src.dashboard.layout import create_layout
 
     app.layout = create_layout()
+    register_callbacks(app)
 
     logger.info("Dash application created")
     return app
