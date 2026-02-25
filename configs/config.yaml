@@ -1,0 +1,22 @@
+app:
+  title: "BI Dashboard Suite"
+  host: "0.0.0.0"
+  port: 8050
+  debug: false
+
+data:
+  database_path: "data/bi_dashboard.duckdb"
+  transactions_count: 100000
+  sample_count: 1000
+
+reporting:
+  output_dir: "reports/"
+  template_path: "templates/report_template.html"
+
+performance:
+  cache_timeout: 300
+  lazy_load_threshold: 1000
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
