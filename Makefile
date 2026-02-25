@@ -17,6 +17,11 @@ clean:
 run:
 	python -m src.main
 
-docker:
+docker-build:
 	docker build -t $(shell basename $(CURDIR)) .
-	docker run -p 8000:8000 $(shell basename $(CURDIR))
+
+docker-run:
+	docker run -p 8050:8050 $(shell basename $(CURDIR))
+
+generate-data:
+	python -m src.data.generator
