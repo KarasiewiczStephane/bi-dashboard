@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Weekly Report</title></head>
+<body>
+  <h1>Weekly Report — {{ period }}</h1>
+  <h2>Key Metrics</h2>
+  <table>
+    <tr><td>Total Revenue</td><td>${{ kpis.total_revenue | round(2) }}</td></tr>
+    <tr><td>Customers</td><td>{{ kpis.customer_count }}</td></tr>
+    <tr><td>Avg Order Value</td><td>${{ kpis.avg_order_value | round(2) }}</td></tr>
+  </table>
+</body>
+</html>
