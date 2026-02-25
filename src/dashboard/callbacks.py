@@ -22,6 +22,8 @@ from src.dashboard.components.charts import (
 from src.dashboard.components.kpi_cards import create_kpi_section
 from src.dashboard.roles import filter_kpis, get_permissions
 from src.data.queries import QueryLayer
+from src.reporting.csv_export import CSVExporter
+from src.reporting.pdf_generator import PDFReportGenerator
 from src.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -204,3 +206,75 @@ def register_callbacks(app: Dash, ql: Optional[QueryLayer] = None) -> None:
         perms = get_permissions(role)
         disabled = not perms["export_enabled"]
         return role, disabled, disabled
+
+    # ------------------------------------------------------------------
+    # CSV export
+    # ------------------------------------------------------------------
+    @app.callback(
+        Output("download-csv", "data"),
+        Input("export-csv-btn", "n_clicks"),
+        [
+            State("date-range", "start_date"),
+            State("date-range", "end_date"),
+            State("region-filter", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def export_csv(
+        n_clicks: int,
+        start: Any,
+        end: Any,
+        region: Optional[str],
+    ) -> Any:
+        """Generate and download a CSV report."""
+        if not n_clicks:
+            return no_update
+        try:
+            start_dt = _parse_date(start)
+            end_dt = _parse_date(end)
+        except (ValueError, TypeError):
+            return no_update
+        exporter = CSVExporter(query_layer=ql)
+        csv_text = exporter.export_sales_summary(start_dt, end_dt, region=region)
+        return dict(
+            content=csv_text,
+            filename=f"dashboard_export_{start_dt}_{end_dt}.csv",
+        )
+
+    # ------------------------------------------------------------------
+    # PDF export
+    # ------------------------------------------------------------------
+    @app.callback(
+        Output("download-pdf", "data"),
+        Input("export-pdf-btn", "n_clicks"),
+        [
+            State("date-range", "start_date"),
+            State("date-range", "end_date"),
+            State("region-filter", "value"),
+        ],
+        prevent_initial_call=True,
+    )
+    def export_pdf(
+        n_clicks: int,
+        start: Any,
+        end: Any,
+        region: Optional[str],
+    ) -> Any:
+        """Generate and download a PDF report."""
+        if not n_clicks:
+            return no_update
+        try:
+            start_dt = _parse_date(start)
+            end_dt = _parse_date(end)
+        except (ValueError, TypeError):
+            return no_update
+        pdf_gen = PDFReportGenerator(query_layer=ql)
+        pdf_bytes = pdf_gen.generate_to_buffer(start_dt, end_dt, region=region)
+        import base64
+
+        encoded = base64.b64encode(pdf_bytes).decode()
+        return dict(
+            content=encoded,
+            filename=f"dashboard_report_{start_dt}_{end_dt}.pdf",
+            base64=True,
+        )
