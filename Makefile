@@ -1,4 +1,4 @@
-.PHONY: install test lint clean run docker
+.PHONY: install test lint clean run dashboard docker
 
 install:
 	pip install -r requirements.txt
@@ -15,6 +15,9 @@ clean:
 	find . -type f -name "*.pyc" -delete
 
 run:
+	python -m src.main
+
+dashboard:
 	python -m src.main
 
 docker-build:

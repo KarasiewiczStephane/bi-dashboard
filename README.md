@@ -2,6 +2,21 @@
 
 > Part of my Data Science Portfolio — [KarasiewiczStephane](https://github.com/KarasiewiczStephane)
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+make install
+
+# 2. Generate synthetic data (~100k transactions in DuckDB)
+make generate-data
+
+# 3. Launch the dashboard
+make dashboard
+```
+
+Open [http://localhost:8050](http://localhost:8050) in your browser.
+
 ## Overview
 
 An interactive business intelligence dashboard built with **Plotly Dash** and **DuckDB**. It generates synthetic retail data, runs analytical queries against an embedded analytical database, and renders live KPI cards, drill-down charts, cohort heatmaps, and funnel visualisations — all inside a responsive single-page app.
@@ -32,10 +47,11 @@ Key capabilities:
 │   dim_time ─ dim_product ─ dim_customer         │
 │              fact_sales                         │
 │   agg_daily_region ─ agg_daily_category         │
+│              agg_cohort                         │
 └────────────────────────────────────────────────┘
 ```
 
-Data flows bottom-up: the **synthetic data generator** populates dimension and fact tables in DuckDB, pre-computed aggregation tables speed up common queries, the **query layer** exposes typed Python methods, and **Dash callbacks** wire everything to the UI.
+Data flows bottom-up: the **synthetic data generator** (`src/data/generator.py`) populates dimension and fact tables in DuckDB, pre-computed aggregation tables speed up common queries, the **query layer** (`src/data/queries.py`) exposes typed Python methods, and **Dash callbacks** wire everything to the UI.
 
 ## Tech Stack
 
@@ -44,11 +60,9 @@ Data flows bottom-up: the **synthetic data generator** populates dimension and f
 | Frontend | Plotly Dash, Dash Bootstrap Components |
 | Charting | Plotly.js (bar, line, heatmap, funnel) |
 | Database | DuckDB (in-process OLAP) |
-| Reports | ReportLab (PDF), CSV via pandas |
+| Reports | ReportLab (PDF), Jinja2 templates, CSV via pandas |
 | Config | PyYAML, python-dotenv |
-| Testing | pytest, pytest-cov (85 %+ coverage) |
-| Linting | ruff, pre-commit |
-| CI/CD | GitHub Actions (lint → test → docker) |
+| Linting | Ruff |
 | Container | Docker (Python 3.11-slim) |
 
 ## Setup
@@ -63,7 +77,7 @@ Data flows bottom-up: the **synthetic data generator** populates dimension and f
 ```bash
 git clone git@github.com:KarasiewiczStephane/bi-dashboard.git
 cd bi-dashboard
-pip install -r requirements.txt
+make install
 ```
 
 ### Generate sample data
@@ -72,21 +86,29 @@ pip install -r requirements.txt
 make generate-data
 ```
 
-This creates `data/bi_dashboard.duckdb` with ~100 000 synthetic transactions spanning 2022-2024.
+This runs `python -m src.data.generator`, which creates `data/bi_dashboard.duckdb` with:
+
+- **dim_time** — daily calendar from 2022-01-01 to 2024-12-31
+- **dim_product** — 50 synthetic products across 5 categories
+- **dim_customer** — 5 000 customers with signup dates and segments
+- **fact_sales** — ~100 000 transactions with Q4 seasonality
+- **agg_daily_region / agg_daily_category / agg_cohort** — pre-computed rollups
+
+The transaction count is configurable in `configs/config.yaml` under `data.transactions_count`.
 
 ### Run the dashboard
 
 ```bash
-make run
+make dashboard   # or: make run
 ```
 
-Open [http://localhost:8050](http://localhost:8050) in your browser.
+Opens a Dash server on [http://localhost:8050](http://localhost:8050). Host, port, and debug mode are set in `configs/config.yaml`.
 
 ### Docker
 
 ```bash
 make docker-build
-make docker-run
+make docker-run          # exposes port 8050
 ```
 
 ## Usage
@@ -118,14 +140,13 @@ Click a bar on the **Revenue by Category** chart to see the top products within 
 
 ```
 bi-dashboard/
-├── assets/                  # CSS (responsive styles)
 ├── configs/
 │   └── config.yaml          # App, data, reporting, logging config
 ├── src/
-│   ├── main.py              # Entry point
+│   ├── main.py              # Entry point (launches Dash server)
 │   ├── data/
-│   │   ├── database.py      # DuckDB connection & schema
-│   │   ├── generator.py     # Synthetic data generator
+│   │   ├── database.py      # DuckDB connection, schema & aggregations
+│   │   ├── generator.py     # Synthetic data generator (run standalone)
 │   │   └── queries.py       # SQL query layer
 │   ├── dashboard/
 │   │   ├── app.py           # Dash app factory
@@ -140,35 +161,33 @@ bi-dashboard/
 │   │   ├── csv_export.py    # CSV exporter
 │   │   └── pdf_generator.py # PDF report generator
 │   └── utils/
-│       ├── config.py        # Config singleton (YAML)
+│       ├── config.py        # Config singleton (YAML + env overrides)
 │       └── logger.py        # Structured logging setup
-├── templates/               # Report HTML templates
-├── tests/                   # Unit + integration tests
-├── .github/workflows/
-│   └── ci.yml               # GitHub Actions pipeline
+├── data/                    # Generated DuckDB file (gitignored)
 ├── Dockerfile
 ├── Makefile
 ├── requirements.txt
-└── pyproject.toml
+├── pyproject.toml
+└── .env.example             # Environment variable reference
 ```
 
-## Development
+## Makefile Targets
 
-```bash
-# Lint & format
-make lint
+| Target | Command | Description |
+|--------|---------|-------------|
+| `make install` | `pip install -r requirements.txt` | Install Python dependencies |
+| `make generate-data` | `python -m src.data.generator` | Create synthetic DuckDB database |
+| `make dashboard` | `python -m src.main` | Launch the Dash dashboard |
+| `make run` | `python -m src.main` | Alias for `make dashboard` |
+| `make test` | `pytest tests/ -v --tb=short --cov=src` | Run tests with coverage |
+| `make lint` | `ruff check` + `ruff format` | Lint and format code |
+| `make clean` | Remove `__pycache__` and `.pyc` | Clean build artifacts |
+| `make docker-build` | `docker build` | Build Docker image |
+| `make docker-run` | `docker run -p 8050:8050` | Run container |
 
-# Run tests with coverage
-make test
+## Configuration
 
-# Pre-commit hooks (auto-installed)
-pre-commit install
-pre-commit run --all-files
-```
-
-### Configuration
-
-All tuneable values live in `configs/config.yaml`. Environment overrides via `.env` (see `.env.example`).
+All tuneable values live in `configs/config.yaml`. Environment variable overrides via `.env` (see `.env.example`).
 
 ## License
 
