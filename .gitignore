@@ -15,6 +15,7 @@ venv/
 data/raw/
 *.csv
 *.parquet
+*.duckdb
 !data/sample/
 
 # Models
