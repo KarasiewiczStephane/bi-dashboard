@@ -1,6 +1,6 @@
 # BI Dashboard Suite
 
-> Part of my Data Science Portfolio — [KarasiewiczStephane](https://github.com/KarasiewiczStephane)
+> Interactive BI dashboard suite — multi-page analytics with KPI tracking, trend analysis, and executive reporting.
 
 ## Quick Start
 
@@ -188,6 +188,11 @@ bi-dashboard/
 ## Configuration
 
 All tuneable values live in `configs/config.yaml`. Environment variable overrides via `.env` (see `.env.example`).
+
+
+## Author
+
+**Stéphane Karasiewicz** — [skarazdata.com](https://skarazdata.com) | [LinkedIn](https://www.linkedin.com/in/stephane-karasiewicz/)
 
 ## License
 
